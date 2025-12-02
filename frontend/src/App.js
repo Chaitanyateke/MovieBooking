@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'; 
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,7 +16,7 @@ import Box from '@mui/material/Box';
 // Page Components
 import Login from './components/Login';
 import Register from './components/Register';
-import Dashboard from './components/Dashboard'; // This is now the public entry point
+import Dashboard from './components/Dashboard'; // Public landing + logged-in dashboard
 import Profile from './components/Profile'; 
 import MyBookings from './components/MyBookings'; 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -79,7 +79,8 @@ const darkTheme = createTheme({
 const AppLayout = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isDashboard = location.pathname.includes('dashboard') || location.pathname.includes('my-bookings');
+  const isDashboard =
+    location.pathname.includes('dashboard') || location.pathname.includes('my-bookings');
   
   const getContainerWidth = () => {
     if (isDashboard) return false; // Full width
@@ -108,19 +109,52 @@ const AppLayout = () => {
           }}
         >
           <Routes>
-            {/* PUBLIC ROOT ROUTE */}
+            {/* PUBLIC LANDING PAGE – shows Now Playing movies */}
             <Route path="/" element={<Dashboard />} /> 
             
+            {/* AUTH PAGES */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
-            <Route path="/dashboard" element={<Dashboard />} /> 
+            {/* PROTECTED DASHBOARD – requires login */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
 
             {/* PROTECTED ROUTES */}
-            <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route
+              path="/my-bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookings />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/admin/login" element={<Login />} /> 
-            <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* OPTIONAL: fallback */}
+            {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
           </Routes>
         </Box>
       </Container>

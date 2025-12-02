@@ -51,7 +51,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// 2. VERIFY OTP (Unchanged logic, just ensuring it returns the full user info if needed)
+// 2. VERIFY OTP 
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -76,7 +76,7 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// 3. LOGIN (Updated to return mobile_number)
+// 3. LOGIN (back to your original login – no single-browser restriction)
 exports.login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
@@ -107,7 +107,8 @@ exports.login = async (req, res) => {
     res.status(500).send('Server Error');
   }
 }
-// 4. SEND LOGIN OTP (New: For Admin Login)
+
+// 4. SEND LOGIN OTP (Admin login)
 exports.sendLoginOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -135,28 +136,51 @@ exports.sendLoginOTP = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => { 
-  // ... (Use previous code for updateProfile)
   try {
     const { name, avatar_url } = req.body;
     const userId = req.user.id;
     if (!name) return res.status(400).json({ message: 'Name is required.' });
-    const updatedUser = await db.query(`UPDATE users SET user_name = $1, avatar_url = $2 WHERE user_id = $3 RETURNING user_id, user_name, user_email, avatar_url, role`, [name, avatar_url || null, userId]);
+    const updatedUser = await db.query(
+      `UPDATE users 
+       SET user_name = $1, avatar_url = $2 
+       WHERE user_id = $3 
+       RETURNING user_id, user_name, user_email, avatar_url, role`,
+      [name, avatar_url || null, userId]
+    );
     res.json(updatedUser.rows[0]);
-  } catch (err) { res.status(500).send('Server Error'); }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 };
 
 exports.changePassword = async (req, res) => {
-    // ... (Use previous code for changePassword)
-     try {
-        const { oldPassword, newPassword } = req.body;
-        const userId = req.user.id;
-        if (!oldPassword || !newPassword) return res.status(400).json({ message: 'Provide both passwords.' });
-        const userQuery = await db.query('SELECT user_password FROM users WHERE user_id = $1', [userId]);
-        const isMatch = await bcrypt.compare(oldPassword, userQuery.rows[0].user_password);
-        if (!isMatch) return res.status(401).json({ message: 'Incorrect old password.' });
-        const salt = await bcrypt.genSalt(10);
-        const newHashedPassword = await bcrypt.hash(newPassword, salt);
-        await db.query('UPDATE users SET user_password = $1 WHERE user_id = $2', [newHashedPassword, userId]);
-        res.json({ message: 'Password updated successfully.' });
-      } catch (err) { res.status(500).send('Server Error'); }
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+    if (!oldPassword || !newPassword) return res.status(400).json({ message: 'Provide both passwords.' });
+
+    const userQuery = await db.query('SELECT user_password FROM users WHERE user_id = $1', [userId]);
+    const isMatch = await bcrypt.compare(oldPassword, userQuery.rows[0].user_password);
+    if (!isMatch) return res.status(401).json({ message: 'Incorrect old password.' });
+
+    const salt = await bcrypt.genSalt(10);
+    const newHashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await db.query('UPDATE users SET user_password = $1 WHERE user_id = $2', [newHashedPassword, userId]);
+    res.json({ message: 'Password updated successfully.' });
+  } catch (err) { 
+    console.error(err.message);
+    res.status(500).send('Server Error'); 
+  }
+};
+
+// Optional: simple logout handler (does not enforce single session)
+exports.logout = async (req, res) => {
+  try {
+    res.json({ message: 'Logged out successfully.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 };

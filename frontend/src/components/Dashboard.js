@@ -88,8 +88,12 @@ const formatCardNumber = (v) =>
   v.replace(/\s+/g, '').replace(/[^0-9]/gi, '').match(/\d{1,4}/g)?.join(' ') || '';
 
 const formatExpiry = (v) =>
-  v.replace(/\s+/g, '').replace(/[^0-9]/gi, '').match(/\d{1,2}/g)?.join('/').substring(0, 5) ||
-  '';
+  v
+    .replace(/\s+/g, '')
+    .replace(/[^0-9]/gi, '')
+    .match(/\d{1,2}/g)
+    ?.join('/')
+    .substring(0, 5) || '';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -116,20 +120,32 @@ const Dashboard = () => {
   });
   const [processingPayment, setProcessingPayment] = useState(false);
 
+  // ---------- MOVIE FETCH (LATEST FIRST, DESIGN UNCHANGED) ----------
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const response = await eventService.getMovies();
-        setMovies(response.data || []);
+        setError('');
+
+        // Prefer public movies endpoint if available
+        let response;
+        if (eventService.getPublicMovies) {
+          response = await eventService.getPublicMovies();
+        } else {
+          response = await eventService.getMovies();
+        }
+
+        const data = response.data || [];
+        const sorted = [...data].sort((a, b) => b.movie_id - a.movie_id); // latest first
+        setMovies(sorted);
       } catch (err) {
         console.error(err);
-        if (isLoggedIn) {
-          setError('Could not fetch movies.');
-        }
+        setError('Could not fetch movies.');
       }
     };
+
     fetchMovies();
-  }, [isLoggedIn]);
+  }, []);
+  // -------------------------------------------------------------  
 
   const handleProfileClick = () => navigate('/profile');
 
@@ -205,6 +221,34 @@ const Dashboard = () => {
     setPaymentDetails({ ...paymentDetails, [name]: formattedValue });
   };
 
+  const isExpiryValid = (expiry) => {
+  if (!expiry || expiry.length !== 5 || expiry.indexOf('/') !== 2) {
+    return false;
+  }
+
+  const [mmStr, yyStr] = expiry.split('/');
+  const month = parseInt(mmStr, 10);
+  const year = parseInt(yyStr, 10);
+
+  // Month must be between 1 and 12
+  if (Number.isNaN(month) || Number.isNaN(year)) return false;
+  if (month < 1 || month > 12) return false;
+
+  // Build expiry as (20YY, MM)
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentYear = now.getFullYear() % 100; // last two digits
+
+  // Expired year
+  if (year < currentYear) return false;
+
+  // Same year but past month
+  if (year === currentYear && month < currentMonth) return false;
+
+  return true;
+};
+
+
   const getPriceForRow = (row) => {
     if (!selectedShowtime) return 200;
     if (['A', 'B', 'C'].includes(row))
@@ -224,34 +268,43 @@ const Dashboard = () => {
     .toFixed(2);
 
   const handlePaymentSubmit = async () => {
-    if (paymentDetails.cardNumber.length < 19 || paymentDetails.cvv.length < 3) {
-      alert('Invalid Card Details.');
-      return;
-    }
-    setProcessingPayment(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+  // Basic card number + CVV checks
+  if (paymentDetails.cardNumber.length < 19 || paymentDetails.cvv.length < 3) {
+    alert('Invalid Card Details.');
+    return;
+  }
 
-      const totalAmount = totalPrice;
-      await eventService.bookTickets(
-        selectedShowtime.showtime_id,
-        selectedSeats,
-        totalAmount,
-        paymentDetails
-      );
+  // ✅ Expiry validation: format + month range + not in past
+  if (!isExpiryValid(paymentDetails.expiry)) {
+    alert('Invalid expiry date. Please enter a valid future date in MM/YY format.');
+    return;
+  }
 
-      setOpenPayment(false);
-      alert(`Payment Successful! Booking Confirmed.`);
-      fetchSeats(selectedShowtime);
-      setSelectedSeats([]);
-      setPaymentDetails({ cardNumber: '', expiry: '', cvv: '', name: '' });
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Booking failed.';
-      setError(msg);
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
+  setProcessingPayment(true);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const totalAmount = totalPrice;
+    await eventService.bookTickets(
+      selectedShowtime.showtime_id,
+      selectedSeats,
+      totalAmount,
+      paymentDetails
+    );
+
+    setOpenPayment(false);
+    alert(`Payment Successful! Booking Confirmed.`);
+    fetchSeats(selectedShowtime);
+    setSelectedSeats([]);
+    setPaymentDetails({ cardNumber: '', expiry: '', cvv: '', name: '' });
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Booking failed.';
+    setError(msg);
+  } finally {
+    setProcessingPayment(false);
+  }
+};
+
 
   const handleLogout = () => {
     authService.logout();
@@ -681,7 +734,7 @@ const Dashboard = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(4, 1fr)', // original layout you used
               gap: '32px',
             }}
           >

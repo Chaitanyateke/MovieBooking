@@ -2,21 +2,29 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Import our database connection
 const db = require('./db');
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Allows requests from other origins (like your frontend)
-app.use(express.json()); // Allows server to read JSON from request bodies
+app.use(cors());
+app.use(express.json());
 
-// --- ROUTES ---
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/events', require('./routes/event.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 
-// A test route to check database connection
+// PUBLIC: Get all movies (for landing page, no login required)
+app.get('/api/public/movies', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM movies ORDER BY movie_id DESC');
+    res.json(result.rows || []);
+  } catch (err) {
+    console.error('Error fetching public movies:', err);
+    res.status(500).json({ message: 'Error fetching movies' });
+  }
+});
+
+// Test DB route
 app.get('/api/test-db', async (req, res) => {
   try {
     const data = await db.query('SELECT NOW()');
@@ -33,7 +41,6 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

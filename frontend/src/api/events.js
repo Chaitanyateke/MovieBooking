@@ -1,45 +1,50 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/events';
+const EVENTS_API_URL = 'http://localhost:5000/api/events';
+const PUBLIC_MOVIES_URL = 'http://localhost:5000/api/public/movies';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
-  if (!token) {
-    return {};
-  }
+  if (!token) return {};
   return { headers: { 'x-auth-token': token } };
 };
 
+// PUBLIC: no token required
+const getPublicMovies = () => {
+  return axios.get(PUBLIC_MOVIES_URL);
+};
+
+// PRIVATE: requires auth
 const getMovies = () => {
-  return axios.get(`${API_URL}/movies`, getAuthHeaders());
+  return axios.get(`${EVENTS_API_URL}/movies`, getAuthHeaders());
 };
 
 const getShowtimes = (movieId) => {
-  return axios.get(`${API_URL}/showtimes/${movieId}`, getAuthHeaders());
+  return axios.get(`${EVENTS_API_URL}/showtimes/${movieId}`, getAuthHeaders());
 };
 
 const getSeatsForShowtime = (showtimeId) => {
-  return axios.get(`${API_URL}/seats/${showtimeId}`, getAuthHeaders());
+  return axios.get(`${EVENTS_API_URL}/seats/${showtimeId}`, getAuthHeaders());
 };
 
-// Updated to accept totalAmount and paymentDetails
 const bookTickets = (showtimeId, seatIds, totalAmount, paymentDetails) => {
-  const API_BOOK_URL = 'http://localhost:5000/api/events/book'; // Ensure correct URL
   return axios.post(
-    API_BOOK_URL,
+    `${EVENTS_API_URL}/book`,
     { showtimeId, seatIds, totalAmount, paymentDetails },
     getAuthHeaders()
   );
 };
 
 const getUserBookings = () => {
-  return axios.get(`${API_URL}/my-bookings`, getAuthHeaders());
+  return axios.get(`${EVENTS_API_URL}/my-bookings`, getAuthHeaders());
 };
+
 const cancelBooking = (bookingId) => {
-  return axios.delete(`${API_URL}/bookings/${bookingId}`, getAuthHeaders());
+  return axios.delete(`${EVENTS_API_URL}/bookings/${bookingId}`, getAuthHeaders());
 };
 
 const eventService = {
+  getPublicMovies,
   getMovies,
   getShowtimes,
   getSeatsForShowtime,

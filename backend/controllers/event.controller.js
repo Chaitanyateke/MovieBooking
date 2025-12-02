@@ -89,11 +89,15 @@ exports.bookTickets = async (req, res) => {
     const ticketsQuery = `INSERT INTO tickets (booking_id, showtime_id, seat_id) VALUES ${ticketValues.join(', ')}`;
     await client.query(ticketsQuery, queryParams);
 
-    const detailsQuery = `SELECT m.title, st.start_time, u.user_email, u.mobile_number, u.user_name FROM showtimes st JOIN movies m ON st.movie_id = m.movie_id JOIN users u ON u.user_id = $1 WHERE st.showtime_id = $2`;
+    const detailsQuery = `SELECT m.title, st.start_time, u.user_email, u.mobile_number, u.user_name 
+                          FROM showtimes st 
+                          JOIN movies m ON st.movie_id = m.movie_id 
+                          JOIN users u ON u.user_id = $1 
+                          WHERE st.showtime_id = $2`;
     const detailsRes = await client.query(detailsQuery, [userId, showtimeId]);
     const details = detailsRes.rows[0];
 
-    // --- NEW: Create Admin Notification ---
+    // --- NEW: Create Admin Notification on booking ---
     await client.query(
       "INSERT INTO notifications (message, type) VALUES ($1, 'booking')", 
       [`New booking: ${details.title} (${seatIds.length} tickets) by ${details.user_name}`]
@@ -146,7 +150,7 @@ exports.getUserBookings = async (req, res) => {
   }
 };
 
-// 6. Cancel Booking
+// 6. Cancel Booking (UPDATED: also creates admin notification)
 exports.cancelBooking = async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -155,16 +159,45 @@ exports.cancelBooking = async (req, res) => {
 
     await client.query('BEGIN');
 
-    const checkQuery = 'SELECT booking_id FROM bookings WHERE booking_id = $1 AND user_id = $2';
-    const checkRes = await client.query(checkQuery, [bookingId, userId]);
+    // Get booking + user + movie details (and seat count) first
+    const infoRes = await client.query(
+      `
+      SELECT 
+        b.booking_id,
+        b.total_amount,
+        u.user_name,
+        u.user_email,
+        m.title,
+        COUNT(t.ticket_id) AS total_tickets
+      FROM bookings b
+      JOIN users u ON b.user_id = u.user_id
+      JOIN showtimes st ON b.showtime_id = st.showtime_id
+      JOIN movies m ON st.movie_id = m.movie_id
+      LEFT JOIN tickets t ON b.booking_id = t.booking_id
+      WHERE b.booking_id = $1 AND b.user_id = $2
+      GROUP BY b.booking_id, b.total_amount, u.user_name, u.user_email, m.title
+      `,
+      [bookingId, userId]
+    );
 
-    if (checkRes.rows.length === 0) {
+    if (infoRes.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Booking not found or access denied.' });
     }
 
+    const bookingInfo = infoRes.rows[0];
+
+    // Delete tickets & booking
     await client.query('DELETE FROM tickets WHERE booking_id = $1', [bookingId]);
     await client.query('DELETE FROM bookings WHERE booking_id = $1', [bookingId]);
+
+    // Create admin notification about cancellation
+    const notifMessage = `Booking cancelled: ${bookingInfo.user_name} cancelled booking for "${bookingInfo.title}" (ID: ${bookingInfo.booking_id}, ${bookingInfo.total_tickets} tickets, ₹${bookingInfo.total_amount})`;
+
+    await client.query(
+      "INSERT INTO notifications (message, type) VALUES ($1, 'booking')",
+      [notifMessage]
+    );
 
     await client.query('COMMIT');
     res.json({ message: 'Booking cancelled successfully.' });

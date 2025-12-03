@@ -605,7 +605,7 @@ const Dashboard = () => {
                       <Typography variant="h6" color="primary">
                         {show.cinema_name}
                       </Typography>
-                      <Typography color="text.secondary">
+                      <Typography color="white">
                         {show.location}
                       </Typography>
                       <Typography
@@ -856,7 +856,7 @@ const Dashboard = () => {
               fontWeight: 'bold',
             }}
           >
-            EVENT BOOKING
+            MOVIE TICKET BOOKING
           </Typography>
 
           {isLoggedIn ? (

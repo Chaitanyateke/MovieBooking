@@ -15,17 +15,26 @@ exports.getMovies = async (req, res) => {
 };
 
 // 2. Get Showtimes for a Movie
+// // 2. Get Showtimes for a Movie
 exports.getShowtimes = async (req, res) => {
   try {
     const { movieId } = req.params;
     const { rows } = await db.query(
       `SELECT 
-         st.showtime_id, st.start_time, st.ticket_price, s.screen_number, c.name AS cinema_name, c.location,
-         st.price_classic, st.price_prime, st.price_recliner, st.price_premium
+         st.showtime_id,
+         st.start_time,
+         s.screen_number,
+         c.name AS cinema_name,
+         c.location,
+         st.price_classic,
+         st.price_prime,
+         st.price_recliner,
+         st.price_premium
        FROM showtimes st
        JOIN screens s ON st.screen_id = s.screen_id
        JOIN cinemas c ON s.cinema_id = c.cinema_id
-       WHERE st.movie_id = $1 AND st.start_time > NOW()
+       WHERE st.movie_id = $1
+         AND st.start_time > NOW()
        ORDER BY st.start_time`,
       [movieId]
     );

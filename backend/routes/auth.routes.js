@@ -21,7 +21,7 @@ router.put('/profile', auth, authController.updateProfile);
 // @access  Private
 router.put('/change-password', auth, authController.changePassword);
 
-router.post('/verify-otp', authController.verifyOTP);
-router.post('/send-login-otp', authController.sendLoginOTP); 
+// router.post('/verify-otp', authController.verifyOTP);
+// router.post('/send-login-otp', authController.sendLoginOTP); 
 
 module.exports = router;

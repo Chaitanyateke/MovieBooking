@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// Use Render backend URL
-const EVENTS_API_URL = 'https://moviebooking-backend-4ups.onrender.com/api/events';
-const PUBLIC_MOVIES_URL = 'https://moviebooking-backend-4ups.onrender.com/api/public/movies';
+const BASE_URL =
+  process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+const EVENTS_API_URL = `${BASE_URL}/api/events`;
+const PUBLIC_MOVIES_URL = `${BASE_URL}/api/public/movies`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -41,7 +43,10 @@ const getUserBookings = () => {
 };
 
 const cancelBooking = (bookingId) => {
-  return axios.delete(`${EVENTS_API_URL}/bookings/${bookingId}`, getAuthHeaders());
+  return axios.delete(
+    `${EVENTS_API_URL}/bookings/${bookingId}`,
+    getAuthHeaders()
+  );
 };
 
 const eventService = {

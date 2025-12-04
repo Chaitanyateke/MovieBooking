@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// Use Render backend URL
-const API_URL = 'https://moviebooking-backend-4ups.onrender.com/api/auth';
+const BASE_URL =
+  process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
+const API_URL = `${BASE_URL}/api/auth`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -14,26 +16,24 @@ const register = (name, email, password, mobile) => {
 };
 
 const verifyOTP = (email, otp) => {
-  return axios.post(`${API_URL}/verify-otp`, { email, otp })
-    .then((response) => {
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-      return response.data;
-    });
+  return axios.post(`${API_URL}/verify-otp`, { email, otp }).then((response) => {
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  });
 };
 
 // Unified login for both User (Email/Mobile) and Admin (Email)
 const login = (identifier, password) => {
-  return axios.post(`${API_URL}/login`, { identifier, password })
-    .then((response) => {
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
-      return response.data;
-    });
+  return axios.post(`${API_URL}/login`, { identifier, password }).then((response) => {
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  });
 };
 
 const logout = () => {
@@ -45,7 +45,11 @@ const updateProfile = (profileData) =>
   axios.put(`${API_URL}/profile`, profileData, getAuthHeaders());
 
 const changePassword = (oldPassword, newPassword) =>
-  axios.put(`${API_URL}/change-password`, { oldPassword, newPassword }, getAuthHeaders());
+  axios.put(
+    `${API_URL}/change-password`,
+    { oldPassword, newPassword },
+    getAuthHeaders()
+  );
 
 const authService = {
   register,

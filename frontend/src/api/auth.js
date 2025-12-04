@@ -1,7 +1,7 @@
-// frontend/src/api/auth.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/auth'; // change to Render URL later
+// Use your own URL here if you already changed it for deployment
+const API_URL = 'http://localhost:5000/api/auth';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -9,11 +9,14 @@ const getAuthHeaders = () => {
   return { headers: { 'x-auth-token': token } };
 };
 
+/**
+ * REGISTER – backend now returns { message, token, user }
+ * We save token + user here directly, same as login.
+ */
 const register = (name, email, password, mobile) => {
   return axios
     .post(`${API_URL}/register`, { name, email, password, mobile })
     .then((response) => {
-      // backend now returns token + user
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -22,21 +25,17 @@ const register = (name, email, password, mobile) => {
     });
 };
 
-// you won’t need this anymore, but can keep it unused
-const verifyOTP = (email, otp) => {
-  console.warn('verifyOTP is no longer used');
-  return Promise.reject('OTP disabled');
-};
-
-// login stays same
+// Unified login for both User (Email/Mobile) and Admin (Email)
 const login = (identifier, password) => {
-  return axios.post(`${API_URL}/login`, { identifier, password }).then((res) => {
-    if (res.data.token) {
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-    }
-    return res.data;
-  });
+  return axios
+    .post(`${API_URL}/login`, { identifier, password })
+    .then((response) => {
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      return response.data;
+    });
 };
 
 const logout = () => {
@@ -46,6 +45,7 @@ const logout = () => {
 
 const updateProfile = (profileData) =>
   axios.put(`${API_URL}/profile`, profileData, getAuthHeaders());
+
 const changePassword = (oldPassword, newPassword) =>
   axios.put(
     `${API_URL}/change-password`,
@@ -55,7 +55,6 @@ const changePassword = (oldPassword, newPassword) =>
 
 const authService = {
   register,
-  verifyOTP, // unused now
   login,
   logout,
   updateProfile,

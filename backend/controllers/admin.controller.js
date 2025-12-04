@@ -131,7 +131,7 @@ exports.addShowtime = async (req, res) => {
       price_classic, price_prime, price_recliner, price_premium
     } = req.body;
 
-    const timestamp = `${date}T${time}:00+05:30`;
+    const timestamp = `${date}T${time}:00`;
 
     await client.query("BEGIN");
 

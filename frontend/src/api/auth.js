@@ -1,9 +1,7 @@
+// frontend/src/api/auth.js
 import axios from 'axios';
 
-const BASE_URL =
-  process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-
-const API_URL = `${BASE_URL}/api/auth`;
+const API_URL = 'http://localhost:5000/api/auth'; // change to Render URL later
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -12,27 +10,32 @@ const getAuthHeaders = () => {
 };
 
 const register = (name, email, password, mobile) => {
-  return axios.post(`${API_URL}/register`, { name, email, password, mobile });
+  return axios
+    .post(`${API_URL}/register`, { name, email, password, mobile })
+    .then((response) => {
+      // backend now returns token + user
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      return response.data;
+    });
 };
 
+// you won’t need this anymore, but can keep it unused
 const verifyOTP = (email, otp) => {
-  return axios.post(`${API_URL}/verify-otp`, { email, otp }).then((response) => {
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-    }
-    return response.data;
-  });
+  console.warn('verifyOTP is no longer used');
+  return Promise.reject('OTP disabled');
 };
 
-// Unified login for both User (Email/Mobile) and Admin (Email)
+// login stays same
 const login = (identifier, password) => {
-  return axios.post(`${API_URL}/login`, { identifier, password }).then((response) => {
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+  return axios.post(`${API_URL}/login`, { identifier, password }).then((res) => {
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
     }
-    return response.data;
+    return res.data;
   });
 };
 
@@ -43,7 +46,6 @@ const logout = () => {
 
 const updateProfile = (profileData) =>
   axios.put(`${API_URL}/profile`, profileData, getAuthHeaders());
-
 const changePassword = (oldPassword, newPassword) =>
   axios.put(
     `${API_URL}/change-password`,
@@ -53,7 +55,7 @@ const changePassword = (oldPassword, newPassword) =>
 
 const authService = {
   register,
-  verifyOTP,
+  verifyOTP, // unused now
   login,
   logout,
   updateProfile,

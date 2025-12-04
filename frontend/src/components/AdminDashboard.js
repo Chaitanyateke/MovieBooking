@@ -150,17 +150,25 @@ const AdminDashboard = () => {
     }
   };
 
-  // -------- NOTIFICATIONS (LATEST + HISTORY) ----------
+  // -------- NOTIFICATIONS (uses backend latest + history, shows 5 latest) ----------
   const fetchNotifications = async () => {
     try {
       const res = await adminService.getNotifications();
 
-      const list = (res.data.notifications || []).sort(
+      // backend: { latest: [...], history: [...] }
+      const latest = res.data.latest || [];
+      const history = res.data.history || [];
+
+      // Merge latest + history so existing UI (slice 0-5 / 5+) still works
+      const list = [...latest, ...history].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
 
       setNotifications(list);
-      setUnreadCount(res.data.unreadCount || 0);
+
+      // Unread count = unread among latest only (recent 5)
+      const latestUnread = latest.filter(n => !n.is_read).length;
+      setUnreadCount(latestUnread);
     } catch (err) {
       console.error("Notif error", err);
     }

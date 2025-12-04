@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/auth';
+// Use Render backend URL
+const API_URL = 'https://moviebooking-backend-4ups.onrender.com/api/auth';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -40,8 +41,11 @@ const logout = () => {
   localStorage.removeItem('user');
 };
 
-const updateProfile = (profileData) => axios.put(`${API_URL}/profile`, profileData, getAuthHeaders());
-const changePassword = (oldPassword, newPassword) => axios.put(`${API_URL}/change-password`, { oldPassword, newPassword }, getAuthHeaders());
+const updateProfile = (profileData) =>
+  axios.put(`${API_URL}/profile`, profileData, getAuthHeaders());
+
+const changePassword = (oldPassword, newPassword) =>
+  axios.put(`${API_URL}/change-password`, { oldPassword, newPassword }, getAuthHeaders());
 
 const authService = {
   register,

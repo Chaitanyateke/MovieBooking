@@ -1,19 +1,36 @@
 const db = require('../db');
 
-/* Helper: auto-create 10x10 seat layout per screen
-   Rows A–J, seats 1–10, same for every screen.
-   Uses the SAME client/transaction to avoid FK issues.
+/*
+  Helper: Auto-create seat layout for a screen
+
+  Rules:
+  - Rows A–J
+  - Seats 1–10 in each row
+  - Seat types by row:
+      A,B  -> classic
+      C–F  -> prime
+      G–I  -> recliner
+      J    -> premium
 */
 async function generateSeats(client, screen_id) {
-  const rows = ['A','B','C','D','E','F','G','H','I','J'];
+  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+  const getSeatType = (row) => {
+    if (row === 'A' || row === 'B') return 'classic';
+    if (['C', 'D', 'E', 'F'].includes(row)) return 'prime';
+    if (['G', 'H', 'I'].includes(row)) return 'recliner';
+    if (row === 'J') return 'premium';
+    return 'classic';
+  };
 
   for (const row of rows) {
+    const seatType = getSeatType(row);
     for (let num = 1; num <= 10; num++) {
       await client.query(
-        `INSERT INTO seats (screen_id, seat_row, seat_number)
-         VALUES ($1, $2, $3)
-         ON CONFLICT DO NOTHING`,
-        [screen_id, row, num]
+        `INSERT INTO seats (screen_id, seat_row, seat_number, seat_type)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (screen_id, seat_row, seat_number) DO NOTHING`,
+        [screen_id, row, num, seatType]
       );
     }
   }
@@ -108,7 +125,7 @@ exports.getAllShowtimes = async (req, res) => {
   }
 };
 
-/* 5. Add Showtime (with auto seats) */
+/* 5. Add Showtime (with auto seats + IST time) */
 exports.addShowtime = async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -129,12 +146,12 @@ exports.addShowtime = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
-    // Treat date + time as local; let DB store it
-    const timestamp = `${date}T${time}:00`;
+    // Store as IST
+    const timestamp = `${date}T${time}:00+05:30`;
 
     await client.query('BEGIN');
 
-    // 1) Find or create cinema
+    // 1) Cinema
     let cinema = await client.query(
       'SELECT cinema_id FROM cinemas WHERE name = $1 AND location = $2',
       [theater_name, location]
@@ -151,7 +168,7 @@ exports.addShowtime = async (req, res) => {
       cinema_id = inserted.rows[0].cinema_id;
     }
 
-    // 2) Find or create screen
+    // 2) Screen
     let screen = await client.query(
       'SELECT screen_id FROM screens WHERE cinema_id = $1 AND screen_number = $2',
       [cinema_id, screen_number]
@@ -167,11 +184,11 @@ exports.addShowtime = async (req, res) => {
       );
       screen_id = inserted.rows[0].screen_id;
 
-      // Auto-generate seats for this new screen (same transaction!)
+      // Auto seats
       await generateSeats(client, screen_id);
     }
 
-    // 3) Insert showtime
+    // 3) Showtime
     await client.query(
       `INSERT INTO showtimes
        (movie_id, screen_id, start_time,

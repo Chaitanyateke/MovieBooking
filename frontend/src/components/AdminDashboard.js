@@ -28,6 +28,23 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 
+// Helper: show time exactly as stored (avoid extra timezone shift)
+const formatShowtime = (isoString) => {
+  if (!isoString) return '';
+
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const hours = d.getUTCHours();
+  const minutes = d.getUTCMinutes();
+  const hh12 = ((hours + 11) % 12) + 1;
+  const mm = String(minutes).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const datePart = d.toLocaleDateString('en-IN');
+
+  return `${datePart} ${String(hh12).padStart(2, '0')}:${mm} ${ampm}`;
+};
+
 // CSS to hide number input arrows
 const numberInputStyle = {
   '& input[type=number]': { '-moz-appearance': 'textfield' },
@@ -54,29 +71,24 @@ const AdminDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  // Data States
   const [movies, setMovies] = useState([]);
   const [users, setUsers] = useState([]);
   const [showtimes, setShowtimes] = useState([]);
   const [payments, setPayments] = useState([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   
-  // Notifications State
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [anchorElNotif, setAnchorElNotif] = useState(null);
 
-  // Search States
   const [movieSearch, setMovieSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [showtimeSearch, setShowtimeSearch] = useState('');
 
-  // User Details Dialog State
   const [openUserDialog, setOpenUserDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userBookings, setUserBookings] = useState([]);
 
-  // Form States
   const [newMovie, setNewMovie] = useState({
     title: '',
     description: '',
@@ -105,7 +117,6 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-clear messages
   useEffect(() => {
     if (message.text) {
       const timer = setTimeout(() => {
@@ -115,7 +126,6 @@ const AdminDashboard = () => {
     }
   }, [message]);
 
-  // Helper for min date
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -124,7 +134,6 @@ const AdminDashboard = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Helper for min time
   const getCurrentTime = () => {
     const today = new Date();
     const hours = String(today.getHours()).padStart(2, '0');
@@ -146,31 +155,20 @@ const AdminDashboard = () => {
       setPayments(paymentsRes.data.transactions || []);
       setTotalRevenue(paymentsRes.data.totalRevenue || 0);
     } catch (err) {
-      console.error("Error fetching data", err);
+      console.error('Error fetching data', err);
     }
   };
 
-  // -------- NOTIFICATIONS (uses backend latest + history, shows 5 latest) ----------
+  // NOTIFICATIONS: Uses backend { notifications, unreadCount }
   const fetchNotifications = async () => {
     try {
       const res = await adminService.getNotifications();
-
-      // backend: { latest: [...], history: [...] }
-      const latest = res.data.latest || [];
-      const history = res.data.history || [];
-
-      // Merge latest + history so existing UI (slice 0-5 / 5+) still works
-      const list = [...latest, ...history].sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
-
+      const list = res.data.notifications || [];
+      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setNotifications(list);
-
-      // Unread count = unread among latest only (recent 5)
-      const latestUnread = latest.filter(n => !n.is_read).length;
-      setUnreadCount(latestUnread);
+      setUnreadCount(res.data.unreadCount || 0);
     } catch (err) {
-      console.error("Notif error", err);
+      console.error('Notif error', err);
     }
   };
 
@@ -184,19 +182,17 @@ const AdminDashboard = () => {
       try {
         await adminService.markNotificationsRead();
         setUnreadCount(0);
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       } catch (err) {
-        console.error("Mark read error", err);
+        console.error('Mark read error', err);
       }
     }
   };
-  // ---------------------------------------------------
 
   const handleTabChange = (event, newValue) => setTabValue(newValue);
   const handleMovieChange = (e) => setNewMovie({ ...newMovie, [e.target.name]: e.target.value });
   const handleShowtimeChange = (e) => setNewShowtime({ ...newShowtime, [e.target.name]: e.target.value });
 
-  // --- FILTERING LOGIC ---
   const filteredMovies = movies.filter(m => 
     m.title.toLowerCase().includes(movieSearch.toLowerCase()) || 
     (m.genre && m.genre.toLowerCase().includes(movieSearch.toLowerCase()))
@@ -217,7 +213,6 @@ const AdminDashboard = () => {
   const activeShowtimes = filteredShowtimes.filter(st => new Date(st.start_time) >= now);
   const historyShowtimes = filteredShowtimes.filter(st => new Date(st.start_time) < now);
 
-  // --- ACTIONS ---
   const handleAddMovie = async (e) => {
     e.preventDefault();
     try {
@@ -231,7 +226,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteMovie = async (id) => {
-    if (!window.confirm("Delete this movie?")) return;
+    if (!window.confirm('Delete this movie?')) return;
     try {
       await adminService.deleteMovie(id);
       setMessage({ text: 'Movie Deleted.', type: 'success' });
@@ -242,7 +237,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (id) => {
-    if (!window.confirm("Delete this user? This cannot be undone.")) return;
+    if (!window.confirm('Delete this user? This cannot be undone.')) return;
     try {
       await adminService.deleteUser(id);
       setMessage({ text: 'User Deleted.', type: 'success' });
@@ -264,10 +259,10 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm("Delete this booking? This action cannot be undone.")) return;
+    if (!window.confirm('Delete this booking? This action cannot be undone.')) return;
     try {
       await adminService.deleteBooking(bookingId);
-      setUserBookings(prev => prev.filter(b => b.booking_id !== bookingId));
+      setUserBookings((prev) => prev.filter((b) => b.booking_id !== bookingId));
       setMessage({ text: 'Booking deleted successfully.', type: 'success' });
     } catch (err) {
       setMessage({ text: 'Failed to delete booking.', type: 'error' });
@@ -285,7 +280,7 @@ const AdminDashboard = () => {
     try {
       await adminService.addShowtime(newShowtime);
       setMessage({ text: 'Showtime Created!', type: 'success' });
-      setNewShowtime({ 
+      setNewShowtime({
         movie_id: '',
         date: '',
         time: '',
@@ -304,7 +299,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteShowtime = async (id) => {
-    if (!window.confirm("Delete this showtime?")) return;
+    if (!window.confirm('Delete this showtime?')) return;
     try {
       await adminService.deleteShowtime(id);
       setMessage({ text: 'Showtime Deleted.', type: 'success' });

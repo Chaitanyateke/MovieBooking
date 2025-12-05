@@ -1,8 +1,12 @@
+// src/api/events.js
 import axios from 'axios';
 
-const BASE_URL =
-  process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+// 🔴 OLD – not available on Vercel
+// const EVENTS_API_URL = 'http://localhost:5000/api/events';
+// const PUBLIC_MOVIES_URL = 'http://localhost:5000/api/public/movies';
 
+// 🟢 NEW – use your Render backend
+const BASE_URL = 'https://moviebooking-backend-4ups.onrender.com';
 const EVENTS_API_URL = `${BASE_URL}/api/events`;
 const PUBLIC_MOVIES_URL = `${BASE_URL}/api/public/movies`;
 
@@ -13,24 +17,24 @@ const getAuthHeaders = () => {
 };
 
 // PUBLIC: no token required
-const getPublicMovies = () => {
+export const getPublicMovies = () => {
   return axios.get(PUBLIC_MOVIES_URL);
 };
 
 // PRIVATE: requires auth
-const getMovies = () => {
+export const getMovies = () => {
   return axios.get(`${EVENTS_API_URL}/movies`, getAuthHeaders());
 };
 
-const getShowtimes = (movieId) => {
+export const getShowtimes = (movieId) => {
   return axios.get(`${EVENTS_API_URL}/showtimes/${movieId}`, getAuthHeaders());
 };
 
-const getSeatsForShowtime = (showtimeId) => {
+export const getSeatsForShowtime = (showtimeId) => {
   return axios.get(`${EVENTS_API_URL}/seats/${showtimeId}`, getAuthHeaders());
 };
 
-const bookTickets = (showtimeId, seatIds, totalAmount, paymentDetails) => {
+export const bookTickets = (showtimeId, seatIds, totalAmount, paymentDetails) => {
   return axios.post(
     `${EVENTS_API_URL}/book`,
     { showtimeId, seatIds, totalAmount, paymentDetails },
@@ -38,15 +42,12 @@ const bookTickets = (showtimeId, seatIds, totalAmount, paymentDetails) => {
   );
 };
 
-const getUserBookings = () => {
+export const getUserBookings = () => {
   return axios.get(`${EVENTS_API_URL}/my-bookings`, getAuthHeaders());
 };
 
-const cancelBooking = (bookingId) => {
-  return axios.delete(
-    `${EVENTS_API_URL}/bookings/${bookingId}`,
-    getAuthHeaders()
-  );
+export const cancelBooking = (bookingId) => {
+  return axios.delete(`${EVENTS_API_URL}/bookings/${bookingId}`, getAuthHeaders());
 };
 
 const eventService = {

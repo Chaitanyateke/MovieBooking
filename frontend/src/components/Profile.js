@@ -1,208 +1,284 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Avatar, Container, Paper, IconButton, Button, TextField, Alert, Collapse, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import authService from '../api/auth';
-import { supabase } from '../supabaseClient'; 
 
+import {
+  Avatar,
+  Button,
+  TextField,
+  Grid,
+  Box,
+  Typography,
+  Alert,
+  Paper,
+  Divider,
+  Tabs,
+  Tab,
+  IconButton,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import PhotoCamera from '@mui/icons-material/PhotoCamera';
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 const Profile = () => {
   const navigate = useNavigate();
-  // Get user details from localStorage initially
-  const initialUser = JSON.parse(localStorage.getItem('user'));
+  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
 
-  // State to hold the current user data (used for displaying profile)
-  const [userProfile, setUserProfile] = useState(initialUser); 
-  
-  // State for form data (used only when editing)
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: initialUser?.user_name || '',
-    avatar_url: initialUser?.avatar_url || '',
-  });
+  const [tab, setTab] = useState(0);
 
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [passwordData, setPasswordData] = useState({ oldPassword: '', newPassword: '' });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState('');
-  const [uploading, setUploading] = useState(false);
+  // profile fields
+  const [name, setName] = useState(storedUser?.user_name || '');
+  const [email, setEmail] = useState(storedUser?.user_email || '');
+  const [avatarUrl, setAvatarUrl] = useState(storedUser?.avatar_url || '');
 
-  // --- NEW STATE FOR CACHE BUSTING ---
-  const [avatarKey, setAvatarKey] = useState(Date.now());
+  // password fields
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleGoBack = () => {
-    if (userProfile?.role === 'admin') {
-      navigate('/admin/dashboard');
-    } else {
-      navigate('/dashboard');
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(false);
+
+  // keep profile fields in sync if localStorage user changes
+  useEffect(() => {
+    if (storedUser) {
+      setName(storedUser.user_name || '');
+      setEmail(storedUser.user_email || '');
+      setAvatarUrl(storedUser.avatar_url || '');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTabChange = (_e, value) => {
+    setTab(value);
+    setMessage({ type: '', text: '' });
   };
 
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing); 
-    setError('');
-    setSuccess('');
-    // Reset form data to current user state if canceling edit
-    setFormData({
-        name: userProfile?.user_name || '',
-        avatar_url: userProfile?.avatar_url || '',
-    });
-  };
+  const showMessage = (type, text) => setMessage({ type, text });
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const handlePasswordChange = (e) => setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  // ---------- update profile ----------
 
-  // --- IMAGE UPLOAD LOGIC (CACHING FIX APPLIED) ---
-  const handleImageUpload = async (event) => {
-    setError('');
-    setSuccess('');
-    if (!event.target.files || event.target.files.length === 0) return;
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setMessage({ type: '', text: '' });
 
-    const file = event.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${initialUser.user_id}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    setUploading(true);
-
-    try {
-      // 1. Upload the file
-      await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      // 2. Update formData with the new public URL (for saving)
-      setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
-      // 3. Update the cache key (for immediate preview)
-      setAvatarKey(Date.now()); 
-      
-      setSuccess('Image uploaded! Click SAVE to confirm changes.');
-
-    } catch (err) {
-      setError('Failed to upload image. Check Supabase RLS.');
-    } finally {
-      setUploading(false);
+    if (!name.trim()) {
+      showMessage('error', 'Name is required.');
+      return;
     }
-  };
 
-  // --- SAVE PROFILE (Name & Avatar URL) ---
-  const handleSave = async () => {
-    setError('');
-    setSuccess('');
+    setLoading(true);
     try {
-      const dataToUpdate = {
-        name: formData.name,
-        avatar_url: formData.avatar_url,
+      const res = await authService.updateProfile({
+        name: name.trim(),
+        avatar_url: avatarUrl || null,
+      });
+
+      // update localStorage
+      const updatedUser = {
+        ...storedUser,
+        user_name: res.data?.user_name || res.user_name || name.trim(),
+        avatar_url: res.data?.avatar_url || res.avatar_url || avatarUrl || null,
       };
-      
-      const updatedUser = await authService.updateProfile(dataToUpdate);
-      
-      // 1. Update localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser.data));
-      // 2. Update local state to force render
-      setUserProfile(updatedUser.data); 
-      
-      setSuccess('Profile updated successfully!');
-      setIsEditing(false);
-      
-    } catch (err) { setError('Failed to update profile.'); }
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      showMessage('success', 'Profile updated successfully.');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to update profile.';
+      showMessage('error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // --- SAVE NEW PASSWORD ---
+  // ---------- change password ----------
+
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    setPasswordError(''); setPasswordSuccess('');
+    setMessage({ type: '', text: '' });
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      showMessage('error', 'Please fill in all password fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showMessage('error', 'New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showMessage('error', 'New password and confirm password do not match.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await authService.changePassword(passwordData.oldPassword, passwordData.newPassword);
-      setPasswordSuccess('Password changed successfully!');
-      setPasswordData({ oldPassword: '', newPassword: '' });
-      setShowPasswordForm(false);
-    } catch (err) { setPasswordError(err.response?.data?.message || 'Failed to change password.'); }
+      await authService.changePassword(oldPassword, newPassword);
+      showMessage('success', 'Password updated successfully.');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to change password.';
+      showMessage('error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const goBack = () => navigate('/');
 
   return (
-    <Container maxWidth="sm">
-      <Paper sx={{ mt: 4, p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: 'background.paper', position: 'relative' }}>
-        
-        {/* Header Icons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'absolute', top: 16, left: 16, right: 16 }}>
-          <IconButton color="primary" onClick={handleGoBack} title="Back to Dashboard"><ArrowBackIcon /></IconButton>
-          
-          {isEditing ? (
-            <IconButton color="primary" onClick={handleSave} title="Save Changes"><SaveIcon /></IconButton>
-          ) : (
-            <IconButton color="primary" onClick={handleEditToggle} title="Edit Profile"><EditIcon /></IconButton>
-          )}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: '#f5f5f5',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+      }}
+    >
+      <Paper
+        elevation={4}
+        sx={{
+          maxWidth: 700,
+          width: '100%',
+          p: 3,
+          borderRadius: 3,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <IconButton onClick={goBack} sx={{ mr: 1 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+            My Profile
+          </Typography>
         </Box>
-        
-        <Box sx={{ mt: 6, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Avatar Rendering Logic: Uses unique key to force refresh */}
-          <Avatar 
-            key={avatarKey} // Force refresh when image changes
-            sx={{ width: 120, height: 120, mb: 2, bgcolor: 'primary.main', fontSize: '4rem' }}
-            // Append cache-buster to the URL
-            src={`${isEditing ? formData.avatar_url : userProfile?.avatar_url}?cb=${avatarKey}`}
+
+        <Divider sx={{ mb: 2 }} />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Avatar
+            src={avatarUrl}
+            sx={{ width: 64, height: 64, mr: 2, bgcolor: 'primary.main' }}
           >
-            {userProfile?.user_name ? userProfile.user_name[0].toUpperCase() : 'U'}
+            {name ? name[0].toUpperCase() : <LockOutlinedIcon />}
           </Avatar>
-
-          {error && <Alert severity="error" sx={{ my: 2, width: '100%' }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ my: 2, width: '100%' }}>{success}</Alert>}
-
-          {isEditing ? (
-            // --- EDIT MODE ---
-            <Box component="form" sx={{ width: '100%' }}>
-              <TextField margin="normal" required fullWidth id="name" label="User Name" name="name" value={formData.name} onChange={handleChange} />
-              
-              <Button 
-                variant="contained" component="label" startIcon={<PhotoCamera />} 
-                sx={{ mt: 2 }} disabled={uploading}>
-                {uploading ? <CircularProgress size={24} color="inherit" /> : 'Upload Profile Image'}
-                <input type="file" hidden accept="image/*" onChange={handleImageUpload} /> 
-              </Button>
-            </Box>
-          ) : (
-            // --- VIEW MODE ---
-            <>
-              <Typography component="h1" variant="h4" gutterBottom>
-                {userProfile?.user_name}
-              </Typography>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                <EmailIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'text-top' }} />
-                {userProfile?.user_email}
-              </Typography>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary', mb: 2 }}>
-                <PhoneIcon fontSize="small" sx={{ mr: 1 }} />
-                <Typography variant="body1">{userProfile?.mobile_number || 'N/A'}</Typography>
-              </Box>
-
-              <Button variant="outlined" onClick={() => setShowPasswordForm(!showPasswordForm)} sx={{ mt: 2 }}>
-                {showPasswordForm ? 'Cancel' : 'Change Password'}
-              </Button>
-            </>
-          )}
-          
-          <Collapse in={showPasswordForm} sx={{ width: '100%' }}>
-            <Box component="form" onSubmit={handlePasswordSubmit} sx={{ mt: 3, border: '1px solid', borderColor: 'divider', p: 3, borderRadius: 2 }}>
-              <Typography component="h3" variant="h6" gutterBottom>Change Your Password</Typography>
-              <TextField margin="normal" required fullWidth name="oldPassword" label="Old Password" type="password" value={passwordData.oldPassword} onChange={handlePasswordChange} />
-              <TextField margin="normal" required fullWidth name="newPassword" label="New Password" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} />
-              {passwordError && <Alert severity="error" sx={{ mt: 2 }}>{passwordError}</Alert>}
-              {passwordSuccess && <Alert severity="success" sx={{ mt: 2 }}>{passwordSuccess}</Alert>}
-              <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }}>Save New Password</Button>
-            </Box>
-          </Collapse>
+          <Box>
+            <Typography variant="h6">{name || 'User'}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {email}
+            </Typography>
+          </Box>
         </Box>
+
+        <Tabs
+          value={tab}
+          onChange={handleTabChange}
+          sx={{
+            mb: 2,
+            '& .MuiTab-root': { textTransform: 'none', fontWeight: 'bold' },
+          }}
+        >
+          <Tab label="Profile" />
+          <Tab label="Change Password" />
+        </Tabs>
+
+        {message.text && (
+          <Alert
+            severity={message.type}
+            sx={{ mb: 2 }}
+            onClose={() => setMessage({ type: '', text: '' })}
+          >
+            {message.text}
+          </Alert>
+        )}
+
+        {tab === 0 && (
+          <Box component="form" onSubmit={handleProfileSubmit} noValidate sx={{ mt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Name"
+                  fullWidth
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Email"
+                  fullWidth
+                  value={email}
+                  disabled
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Avatar Image URL"
+                  fullWidth
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                />
+              </Grid>
+            </Grid>
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3 }}
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </Box>
+        )}
+
+        {tab === 1 && (
+          <Box component="form" onSubmit={handlePasswordSubmit} noValidate sx={{ mt: 1 }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Current Password"
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="New Password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Confirm New Password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3 }}
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update Password'}
+            </Button>
+          </Box>
+        )}
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

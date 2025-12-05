@@ -7,8 +7,8 @@ import axios from 'axios';
 
 // 🟢 NEW – use your Render backend
 const BASE_URL = 'https://moviebooking-backend-4ups.onrender.com';
-const EVENTS_API_URL = `${BASE_URL}/api/events`;
-const PUBLIC_MOVIES_URL = `${BASE_URL}/api/public/movies`;
+const EVENTS_API_URL = 'https://moviebooking-backend-4ups.onrender.com/api/events';
+const PUBLIC_MOVIES_URL = 'https://moviebooking-backend-4ups.onrender.com/api/public/movies';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

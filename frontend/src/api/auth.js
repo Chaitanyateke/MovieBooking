@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/auth'; // change to backend URL in production
+const API_URL = 'https://moviebooking-backend-4ups.onrender.com/api/auth';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

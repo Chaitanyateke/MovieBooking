@@ -35,7 +35,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import Pagination from '@mui/material/Pagination';
-
+import MovieLogo from '../assets/Logo.png';
 // ---------- helpers ----------
 
 const seatStyle = (status, isSelected) => {
@@ -822,19 +822,33 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              color: 'primary.main',
-              fontWeight: 'bold',
-            }}
-          >
-            MOVIE TICKET BOOKING
-          </Typography>
+     <AppBar position="static" sx={{ bgcolor: 'background.paper', boxShadow: 2 }}>
+  <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+    {/* Left side: Logo + Title */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Box
+        component="img"
+        src={MovieLogo}
+        alt="Movie Ticket Booking"
+        sx={{
+          height: 40,
+          width: 'auto',
+          borderRadius: 1,
+        }}
+      />
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Typography
+          variant="h6"
+          sx={{
+            color: 'primary.main',
+            fontWeight: 'bold',
+            letterSpacing: 1,
+          }}
+        >
+          MOVIE TICKET BOOKING
+        </Typography>
+      </Box>
+    </Box>
 
           {isLoggedIn ? (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>

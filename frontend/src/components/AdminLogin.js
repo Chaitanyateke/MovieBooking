@@ -15,7 +15,7 @@ const AdminLogin = () => {
     setError('');
     try {
       // We use the same login API
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await axios.post('http://moviebooking-backend-4ups.onrender.com/api/auth/login', { email, password });
       
       // BUT we check the role before letting them in
       if (res.data.user.role !== 'admin') {

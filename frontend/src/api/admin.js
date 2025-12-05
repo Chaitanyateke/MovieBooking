@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL =
-  process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+  process.env.REACT_APP_BACKEND_URL || 'https://moviebooking-backend-4ups.onrender.com/api';
 
 const API_URL = 'https://moviebooking-backend-4ups.onrender.com/api';
 

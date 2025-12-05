@@ -19,6 +19,8 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
+import MovieLogo from '../assets/Logo.png';
+
 const Profile = () => {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -38,7 +40,7 @@ const Profile = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
-  // keep profile fields in sync if localStorage user changes
+  // keep profile fields in sync on first mount
   useEffect(() => {
     if (storedUser) {
       setName(storedUser.user_name || '');
@@ -54,6 +56,23 @@ const Profile = () => {
   };
 
   const showMessage = (type, text) => setMessage({ type, text });
+
+  // ---------- avatar: upload from device ----------
+
+  const handleAvatarFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        // store base64 image data
+        setAvatarUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // ---------- update profile ----------
 
@@ -73,7 +92,6 @@ const Profile = () => {
         avatar_url: avatarUrl || null,
       });
 
-      // update localStorage
       const updatedUser = {
         ...storedUser,
         user_name: res.data?.user_name || res.user_name || name.trim(),
@@ -130,42 +148,96 @@ const Profile = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        bgcolor: '#f5f5f5',
+        bgcolor: 'linear-gradient(180deg,#FFFDE7,#FFF9C4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         py: 4,
+        px: 2,
       }}
     >
       <Paper
-        elevation={4}
+        elevation={6}
         sx={{
-          maxWidth: 700,
+          maxWidth: 800,
           width: '100%',
           p: 3,
           borderRadius: 3,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+          backdropFilter: 'blur(6px)',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <IconButton onClick={goBack} sx={{ mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-            My Profile
-          </Typography>
+        {/* Header with back + logo + title */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mb: 2,
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              onClick={goBack}
+              sx={{
+                mr: 1,
+                transition: 'all 0.2s',
+                '&:hover': { transform: 'translateX(-2px)' },
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              My Profile
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              component="img"
+              src={MovieLogo}
+              alt="Movie Ticket Booking"
+              sx={{ height: 36, width: 'auto' }}
+            />
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 'bold',
+                letterSpacing: 0.5,
+                color: '#FFB300',
+              }}
+            >
+              MOVIE TICKET BOOKING
+            </Typography>
+          </Box>
         </Box>
 
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 3 }} />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        {/* User info card header */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mb: 3,
+          }}
+        >
           <Avatar
-            src={avatarUrl}
-            sx={{ width: 64, height: 64, mr: 2, bgcolor: 'primary.main' }}
+            src={avatarUrl || undefined}
+            sx={{
+              width: 80,
+              height: 80,
+              mr: 2.5,
+              bgcolor: 'primary.main',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
           >
             {name ? name[0].toUpperCase() : <LockOutlinedIcon />}
           </Avatar>
           <Box>
-            <Typography variant="h6">{name || 'User'}</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {name || 'User'}
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               {email}
             </Typography>
@@ -177,7 +249,10 @@ const Profile = () => {
           onChange={handleTabChange}
           sx={{
             mb: 2,
-            '& .MuiTab-root': { textTransform: 'none', fontWeight: 'bold' },
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 'bold',
+            },
           }}
         >
           <Tab label="Profile" />
@@ -197,7 +272,7 @@ const Profile = () => {
         {tab === 0 && (
           <Box component="form" onSubmit={handleProfileSubmit} noValidate sx={{ mt: 1 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   label="Name"
                   fullWidth
@@ -206,7 +281,7 @@ const Profile = () => {
                   required
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   label="Email"
                   fullWidth
@@ -214,14 +289,41 @@ const Profile = () => {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12}>
+
+              <Grid item xs={12} md={6}>
                 <TextField
                   label="Avatar Image URL"
                   fullWidth
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
                   placeholder="https://example.com/avatar.jpg"
+                  helperText="Paste an image URL to use it as your avatar."
                 />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  fullWidth
+                  sx={{
+                    height: '100%',
+                    mt: { xs: 2, md: 0 },
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s',
+                    '&:hover': { transform: 'translateY(-1px)' },
+                  }}
+                >
+                  Upload avatar from device
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarFileChange}
+                  />
+                </Button>
               </Grid>
             </Grid>
 
@@ -229,7 +331,15 @@ const Profile = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3 }}
+              sx={{
+                mt: 3,
+                py: 1.2,
+                fontWeight: 'bold',
+                textTransform: 'none',
+                borderRadius: 2,
+                transition: 'all 0.2s',
+                '&:hover': { transform: 'translateY(-1px) scale(1.01)' },
+              }}
               disabled={loading}
             >
               {loading ? 'Saving...' : 'Save Changes'}
@@ -270,7 +380,15 @@ const Profile = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3 }}
+              sx={{
+                mt: 3,
+                py: 1.2,
+                fontWeight: 'bold',
+                textTransform: 'none',
+                borderRadius: 2,
+                transition: 'all 0.2s',
+                '&:hover': { transform: 'translateY(-1px) scale(1.01)' },
+              }}
               disabled={loading}
             >
               {loading ? 'Updating...' : 'Update Password'}

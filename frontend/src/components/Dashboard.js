@@ -35,7 +35,9 @@ import LockIcon from '@mui/icons-material/Lock';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import Pagination from '@mui/material/Pagination';
+
 import MovieLogo from '../assets/Logo.png';
+
 // ---------- helpers ----------
 
 const seatStyle = (status, isSelected) => {
@@ -87,7 +89,8 @@ const groupSeatsByRow = (seats) => {
 };
 
 const formatCardNumber = (v) =>
-  v.replace(/\s+/g, '').replace(/[^0-9]/gi, '').match(/\d{1,4}/g)?.join(' ') || '';
+  v.replace(/\s+/g, '').replace(/[^0-9]/gi, '').match(/\d{1,4}/g)?.join(' ') ||
+  '';
 
 const formatExpiry = (v) =>
   v
@@ -143,7 +146,7 @@ const Dashboard = () => {
   });
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // pagination state
+  // pagination
   const [page, setPage] = useState(1);
   const moviesPerPage = 8;
 
@@ -171,7 +174,7 @@ const Dashboard = () => {
     fetchMovies();
   }, []);
 
-  // reset page when search / filter / movie list changes
+  // reset page when search / filter / list changes
   useEffect(() => {
     setPage(1);
   }, [searchTerm, genreFilter, movies.length]);
@@ -252,8 +255,10 @@ const Dashboard = () => {
 
   const getPriceForRow = (row) => {
     if (!selectedShowtime) return 200;
-    if (['A', 'B', 'C'].includes(row)) return parseFloat(selectedShowtime.price_classic) || 200;
-    if (['D', 'E', 'F', 'G', 'H'].includes(row)) return parseFloat(selectedShowtime.price_prime) || 350;
+    if (['A', 'B', 'C'].includes(row))
+      return parseFloat(selectedShowtime.price_classic) || 200;
+    if (['D', 'E', 'F', 'G', 'H'].includes(row))
+      return parseFloat(selectedShowtime.price_prime) || 350;
     if (row === 'I') return parseFloat(selectedShowtime.price_recliner) || 550;
     if (row === 'J') return parseFloat(selectedShowtime.price_premium) || 870;
     return 200;
@@ -279,7 +284,6 @@ const Dashboard = () => {
 
     setProcessingPayment(true);
     try {
-      // fake delay
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const totalAmount = totalPrice;
@@ -336,7 +340,7 @@ const Dashboard = () => {
     return matchesSearch && matchesGenre;
   });
 
-  // pagination calculations
+  // pagination
   const totalPages = Math.max(1, Math.ceil(filteredMovies.length / moviesPerPage));
   const startIndex = (page - 1) * moviesPerPage;
   const paginatedMovies = filteredMovies.slice(startIndex, startIndex + moviesPerPage);
@@ -364,7 +368,11 @@ const Dashboard = () => {
 
       return (
         <Box sx={{ mt: 4 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={backToShowtimes} sx={{ mb: 2 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={backToShowtimes}
+            sx={{ mb: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-1px)' } }}
+          >
             Back to Showtimes
           </Button>
 
@@ -510,6 +518,10 @@ const Dashboard = () => {
                   fontSize: '1.1rem',
                   padding: '12px 40px',
                   borderRadius: '30px',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-1px) scale(1.01)',
+                  },
                 }}
                 disabled={selectedSeats.length === 0}
               >
@@ -525,7 +537,11 @@ const Dashboard = () => {
     if (selectedMovie) {
       return (
         <Box sx={{ mt: 4 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={backToMovies} sx={{ mb: 2 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={backToMovies}
+            sx={{ mb: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-1px)' } }}
+          >
             Back to Movies
           </Button>
 
@@ -598,7 +614,8 @@ const Dashboard = () => {
                           bgcolor: '#FFC107',
                           color: 'black',
                           fontWeight: 'bold',
-                          '&:hover': { bgcolor: '#e0a800' },
+                          transition: 'all 0.2s',
+                          '&:hover': { bgcolor: '#e0a800', transform: 'translateY(-1px)' },
                         }}
                       >
                         Select Seats
@@ -781,7 +798,14 @@ const Dashboard = () => {
                       variant="contained"
                       color="primary"
                       onClick={() => handleAction(movie)}
-                      sx={{ borderRadius: '20px', fontWeight: 'bold' }}
+                      sx={{
+                        borderRadius: '20px',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-1px) scale(1.01)',
+                        },
+                      }}
                     >
                       Book Tickets
                     </Button>
@@ -821,34 +845,38 @@ const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-     <AppBar position="static" sx={{ bgcolor: 'background.paper', boxShadow: 2 }}>
-  <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-    {/* Left side: Logo + Title */}
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      <Box
-        component="img"
-        src={MovieLogo}
-        alt="Movie Ticket Booking"
-        sx={{
-          height: 40,
-          width: 'auto',
-          borderRadius: 1,
-        }}
-      />
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography
-          variant="h6"
-          sx={{
-            color: 'primary.main',
-            fontWeight: 'bold',
-            letterSpacing: 1,
-          }}
-        >
-          MOVIE TICKET BOOKING
-        </Typography>
-      </Box>
-    </Box>
+    <Box
+      sx={{
+        flexGrow: 1,
+        minHeight: '100vh',
+        bgcolor: 'linear-gradient(180deg,#FFFDE7,#FFF9C4)',
+      }}
+    >
+      <AppBar position="static" sx={{ bgcolor: 'background.paper', boxShadow: 2 }}>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          {/* Left side: Logo + Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              component="img"
+              src={MovieLogo}
+              alt="Movie Ticket Booking"
+              sx={{
+                height: 40,
+                width: 'auto',
+                borderRadius: 1,
+              }}
+            />
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'primary.main',
+                fontWeight: 'bold',
+                letterSpacing: 1,
+              }}
+            >
+              MOVIE TICKET BOOKING
+            </Typography>
+          </Box>
 
           {isLoggedIn ? (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -862,6 +890,9 @@ const Dashboard = () => {
                   mr: 2,
                   color: 'text.primary',
                   fontWeight: 'bold',
+                  textTransform: 'none',
+                  transition: 'all 0.2s',
+                  '&:hover': { transform: 'translateY(-1px)' },
                 }}
               >
                 My Bookings
@@ -883,7 +914,12 @@ const Dashboard = () => {
                   {user?.user_name ? user.user_name[0].toUpperCase() : 'U'}
                 </Avatar>
               </IconButton>
-              <IconButton color="primary" onClick={handleLogout} title="Logout">
+              <IconButton
+                color="primary"
+                onClick={handleLogout}
+                title="Logout"
+                sx={{ transition: 'all 0.2s', '&:hover': { transform: 'translateY(-1px)' } }}
+              >
                 <LogoutIcon />
               </IconButton>
             </Box>
@@ -892,7 +928,15 @@ const Dashboard = () => {
               variant="contained"
               color="primary"
               onClick={() => navigate('/login')}
-              sx={{ py: 1 }}
+              sx={{
+                py: 1,
+                px: 3,
+                fontWeight: 'bold',
+                textTransform: 'none',
+                borderRadius: 20,
+                transition: 'all 0.2s',
+                '&:hover': { transform: 'translateY(-1px) scale(1.01)' },
+              }}
             >
               Login
             </Button>
@@ -1064,7 +1108,14 @@ const Dashboard = () => {
               color="success"
               disabled={processingPayment}
               fullWidth
-              sx={{ py: 1.5, fontWeight: 'bold' }}
+              sx={{
+                py: 1.5,
+                fontWeight: 'bold',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-1px) scale(1.01)',
+                },
+              }}
             >
               {processingPayment ? (
                 <CircularProgress size={24} color="inherit" />
